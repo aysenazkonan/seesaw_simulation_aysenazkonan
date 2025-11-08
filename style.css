@@ -38,3 +38,44 @@ body{
   text-align: center;
 }
 
+/* Stage area */
+.stage{
+  position: relative;
+  height: 320px;
+  margin: 0 auto;
+  background: linear-gradient(180deg, #0f1115 0%, #0d0f14 60%, #0c0e12 100%);
+  border: 1px solid #1c2230;
+  border-radius: 16px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+/* Pivot (fulcrum) */
+#pivot{
+  position: absolute;
+  bottom: 60px;      /* ground clearance */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0; height: 0;
+  border-left: 18px solid transparent;
+  border-right: 18px solid transparent;
+  border-top: 34px solid #eab308; /* amber */
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,.3));
+}
+
+/* Plank bar */
+#plank{
+  --plank-length: 480px;
+  position: absolute;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%) rotate(0deg);
+  width: var(--plank-length);
+  height: 12px;
+  background: #3b82f6;           /* blue */
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(59,130,246,.25), inset 0 -2px 0 rgba(0,0,0,.25);
+  transform-origin: 50% 50%;
+}
+
