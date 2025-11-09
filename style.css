@@ -38,48 +38,55 @@ body{
   text-align: center;
 }
 
-/* Stage area */
+
 .stage{
   position: relative;
-  height: 320px;
-  margin: 0 auto;
+  height: 440px;              
+  margin: 0 auto 16px;        
   background: linear-gradient(180deg, #0f1115 0%, #0d0f14 60%, #0c0e12 100%);
   border: 1px solid #1c2230;
   border-radius: 16px;
-  overflow: hidden;
+  overflow: visible;         
   display: grid;
   place-items: center;
 }
 
-/* Pivot (fulcrum) */
+
+
 #pivot{
   position: absolute;
-  bottom: 60px;      /* ground clearance */
+  top: calc(50% + 6px);
   left: 50%;
-  transform: translateX(-50%);
-  width: 0; height: 0;
+  transform: translateX(-50%);  
+  width: 0;
+  height: 0;
+
   border-left: 18px solid transparent;
   border-right: 18px solid transparent;
-  border-top: 34px solid #eab308; /* amber */
+  border-bottom: 34px solid #eab308;  
+
   filter: drop-shadow(0 4px 6px rgba(0,0,0,.3));
+  z-index: 1; 
 }
 
-/* Plank bar */
+
 #plank{
   --plank-length: 480px;
   position: absolute;
-  bottom: 90px;
-  left: 50%;
-  transform: translateX(-50%) rotate(0deg);
+  top: 50%;                   
+  left: 50%;                  
+  transform: translate(-50%, -50%) rotate(0deg);
   width: var(--plank-length);
   height: 12px;
-  background: #3b82f6;           /* blue */
+  background: #3b82f6;
   border-radius: 8px;
   box-shadow: 0 10px 30px rgba(59,130,246,.25), inset 0 -2px 0 rgba(0,0,0,.25);
   transform-origin: 50% 50%;
+  overflow: visible;         
+  z-index: 2;
 }
 
-/* HUD cards layout */
+
 .hud-cards {
   display: flex;
   gap: 24px;
@@ -104,7 +111,7 @@ body{
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.05em;
-  color: #6b7280; /* gray */
+  color: #6b7280; 
   margin-bottom: 4px;
 }
 
@@ -115,7 +122,7 @@ body{
   color: #1f2937;
 }
 
-/* Controls */
+
 .controls{
   display:flex;
   justify-content:center;
@@ -188,4 +195,33 @@ body{
   font-size: 14px;
   color: #1f2937;
 }
+
+#plank { overflow: visible; }
+
+.weight{
+  position: absolute;
+  top: 50%;                      
+  transform: translate(-50%, -50%); 
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 35% 35%, rgba(255,255,255,.18), rgba(0,0,0,.18)),
+              #3b82f6;
+  color: #fff;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 10px 20px rgba(0,0,0,.25);
+  user-select: none;
+  pointer-events: none;           
+  animation: dropIn .28s ease-out;
+}
+
+.weight.left  { background-color: #334155; } 
+.weight.right { background-color: #f59e0b; }
+.weight.blue  { background-color: #3b82f6; } 
+
+@keyframes dropIn{
+  from { transform: translate(-50%, -90%) scale(.9); opacity: 0; }
+  to   { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
+}
+
 

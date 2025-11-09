@@ -120,13 +120,21 @@
 
     function renderWeight(w) {
         const half = CONFIG.PLANK_LENGTH / 2;
+
+        const size = 30 + (w.kg * 4); 
+
         const el = document.createElement("div");
-        el.className = "weight";
+        el.className = "weight " + (w.dx < 0 ? "left" : "right"); 
         el.style.left = `${half + w.dx}px`;
-        el.textContent = w.kg;
+        el.style.width = el.style.height = `${size}px`;
+        el.textContent = `${w.kg}kg`;
         el.title = `${w.kg} kg`;
+
+        el.style.textShadow = "0 1px 2px rgba(0,0,0,.35)";
+
         plankEl.appendChild(el);
     }
+
     function clearPlankChildren() { plankEl.innerHTML = ""; }
 
     function updateHUD(snap) {
@@ -134,7 +142,6 @@
         if (rightWeightEl) rightWeightEl.textContent = `${snap.rightWeight.toFixed(1)} kg`;
         if (angleEl) angleEl.textContent = `${snap.targetAngle.toFixed(1)}°`;
 
-        // görsel eğimi uygula (animasyon yok; Commit 5'te easing ekleriz)
         plankEl.style.transform = `translateX(-50%) rotate(${snap.targetAngle}deg)`;
     }
 
