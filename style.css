@@ -79,3 +79,117 @@ body{
   transform-origin: 50% 50%;
 }
 
+/* HUD cards layout */
+.hud-cards {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  align-items: stretch;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.hud-card {
+  background: #f9fafb;
+  color: #0f1115;
+  border-radius: 10px;
+  padding: 16px 24px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  min-width: 160px;
+}
+
+.hud-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #6b7280; /* gray */
+  margin-bottom: 4px;
+}
+
+.hud-value {
+  display: block;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+/* Controls */
+.controls{
+  display:flex;
+  justify-content:center;
+  margin-top:12px;
+}
+.controls button{
+  background: var(--panel);
+  color: var(--text);
+  border:1px solid #2a3244;
+  border-radius:10px;
+  padding:8px 16px;
+  font-weight:600;
+  cursor:pointer;
+  transition: all .2s ease;
+}
+.controls button:hover{
+  border-color:#3b82f6;
+  color:#3b82f6;
+}
+
+
+/* Activity Log */
+.event-log{
+  max-width: 960px;
+  margin: 16px auto 0;
+}
+.log-header{
+  font-weight: 700;
+  font-size: 14px;
+  color: #9aa3b2;
+  margin: 0 0 8px 4px;
+  letter-spacing: .02em;
+}
+.log-list{
+  max-height: 220px;           /* ekranına göre ayarlayabilirsin */
+  overflow-y: auto;
+  padding-right: 6px;          /* scrollbar için biraz boşluk */
+}
+
+.log-item{
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f9fafb;         /* açık kart rengi */
+  color: #0f1115;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  padding: 10px 12px 10px 14px;
+  margin-bottom: 10px;
+}
+
+/* sol mavi çizgi */
+.log-item::before{
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 4px;
+  border-radius: 4px;
+  background: #3b82f6;
+}
+
+/* ikon */
+.log-emoji{
+  font-size: 16px;
+  line-height: 1;
+  margin-left: 4px;
+}
+
+/* metin */
+.log-text{
+  font-size: 14px;
+  color: #1f2937;
+}
+

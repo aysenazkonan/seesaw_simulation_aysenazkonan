@@ -1,22 +1,53 @@
 <!doctype html>
 <html lang="en">
-  <head>
+
+<head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Seesaw Simulation - Ayşenaz Konan</title>
     <link rel="stylesheet" href="style.css" />
-  </head>
-  <body>
-   <main class="app">
+</head>
+
+<body>
+    <main class="app">
         <h1 class="title">Seesaw Simulation</h1>
+
+        <section class="hud-cards">
+            <div class="hud-card">
+                <span class="hud-label">LEFT WEIGHT</span>
+                <span class="hud-value" id="leftTorque">0.0 kg</span>
+            </div>
+            <div class="hud-card">
+                <span class="hud-label">NEXT WEIGHT</span>
+                <span class="hud-value" id="nextWeight">- kg</span>
+            </div>
+            <div class="hud-card">
+                <span class="hud-label">RIGHT WEIGHT</span>
+                <span class="hud-value" id="rightTorque">0.0 kg</span>
+            </div>
+            <div class="hud-card">
+                <span class="hud-label">TILT ANGLE</span>
+                <span class="hud-value" id="angleReadout">0.0°</span>
+            </div>
+        </section>
 
         <section class="stage">
             <div id="pivot"></div>
-            <div id="plank"></div>
+            <div id="plank" role="button" aria-label="Seesaw plank" tabindex="0"></div>
         </section>
+
+        <div class="controls">
+            <button id="resetBtn" type="button" aria-label="Reset simulation">Reset</button>
+        </div>
+        
+        <section class="event-log">
+            <div class="log-header">Activity</div>
+            <div id="logList" class="log-list"></div>
+        </section>
+
     </main>
 
-
     <script src="script.js"></script>
-  </body>
+</body>
+
 </html>

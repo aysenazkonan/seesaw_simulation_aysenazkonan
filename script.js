@@ -1,110 +1,225 @@
 (function () {
-  const CONFIG = {
-    PLANK_LENGTH: 480,          
-    MAX_ANGLE: 30,               
-    TORQUE_TO_ANGLE_SCALE: 10    
-  };
+    // ---- config (will sync with CSS at runtime) ----
+    const CONFIG = {
+        PLANK_LENGTH: 480,           // px (CSS --plank-length varsa onunla senkronlanır)
+        MAX_ANGLE: 30,               // degrees
+        TORQUE_TO_ANGLE_SCALE: 10    // örnekteki /10
+    };
+    const STORAGE_KEY = "seesaw_state_v1";
+    const LOG_KEY = "seesaw_logs_v1";
 
-  const state = loadState() || {
-    weights: [],
-    angle: 0
-  };
+    // ---- elements ----
+    const plankEl = document.getElementById("plank");
+    const leftWeightEl = document.getElementById("leftTorque");    // toplam kg (sol)
+    const rightWeightEl = document.getElementById("rightTorque");   // toplam kg (sağ)
+    const nextWeightEl = document.getElementById("nextWeight");    // sıradaki kg
+    const angleEl = document.getElementById("angleReadout");  // açı
+    const resetBtn = document.getElementById("resetBtn");
+    const logListEl = document.getElementById("logList");       // activity log container
 
-  const plankEl = document.getElementById("plank");
-  if (!plankEl) {
-    console.warn("[seesaw] plank element not found. Did you add it in index.html?");
-  }
+    if (!plankEl) { console.warn("[seesaw] plank element not found."); return; }
 
-  const { leftTorque, rightTorque, targetAngle } = recomputePhysics(state);
-  state.angle = targetAngle;
-  saveState(state);
+    // CSS değişkeninden uzunluğu oku (varsa)
+    const cssLen = parseFloat(getComputedStyle(plankEl).getPropertyValue("--plank-length"));
+    if (!Number.isNaN(cssLen) && cssLen > 0) CONFIG.PLANK_LENGTH = cssLen;
 
-  window.seesaw = {
-    state,
-    addWeight(dx, kg) {
-      const w = {
-        id: crypto.randomUUID(),
-        dx: Number(dx) || 0,
-        kg: clamp(Math.round(kg), 1, 10)
-      };
-      state.weights.push(w);
-      const res = recomputePhysics(state);
-      state.angle = res.targetAngle;
-      saveState(state);
-      logSnapshot(res, "[addWeight]");
-      return res;
-    },
-    recompute() {
-      const res = recomputePhysics(state);
-      state.angle = res.targetAngle;
-      saveState(state);
-      logSnapshot(res, "[recompute]");
-      return res;
-    },
-    clear() {
-      state.weights = [];
-      state.angle = 0;
-      saveState(state);
-      console.log("[seesaw.clear] cleared state");
+    // ---- state ----
+    // weights = [{ id, kg (1..10), dx(px from center; left negative, right positive) }]
+    const state = loadState() || { weights: [], angle: 0 };
+
+    // HUD'da gösterilecek bir sonraki ağırlık
+    let nextKg = randInt(1, 10);
+    if (nextWeightEl) nextWeightEl.textContent = `${nextKg} kg`;
+
+    // ---- initial render ----
+    clearPlankChildren();
+    for (const w of state.weights) renderWeight(w);
+
+    let snapshot = recomputeAll(state);
+    state.angle = snapshot.targetAngle;
+    saveState(state);
+    updateHUD(snapshot);
+
+    // Logları yükle & çiz
+    let logs = loadLogs();
+    renderLogs(logs);
+
+    // ---- interaction: click → mevcut nextKg'yi bırak ----
+    plankEl.addEventListener("click", (e) => {
+        const rect = plankEl.getBoundingClientRect();
+        const x = e.clientX - rect.left;                // 0..rect.width
+        const clampedX = clamp(x, 0, rect.width);
+
+        // DOM px → mantıksal (CONFIG.PLANK_LENGTH) ölçeği
+        const scale = CONFIG.PLANK_LENGTH / rect.width;
+        const dx = (clampedX - rect.width / 2) * scale; // sol negatif, sağ pozitif
+
+        const kg = nextKg;                              // HUD'da görülen ağırlık
+        const w = { id: crypto.randomUUID(), dx, kg };
+        state.weights.push(w);
+        renderWeight(w);
+
+        snapshot = recomputeAll(state);
+        state.angle = snapshot.targetAngle;
+        saveState(state);
+        updateHUD(snapshot);
+
+        // log ekle
+        addLogEntry(kg, dx);
+
+        // yeni "next"
+        nextKg = randInt(1, 10);
+        if (nextWeightEl) nextWeightEl.textContent = `${nextKg} kg`;
+
+        console.log(
+            `[click] kg=${kg} dx=${dx.toFixed(1)} | Lw=${snapshot.leftWeight.toFixed(1)}kg Rw=${snapshot.rightWeight.toFixed(1)}kg | Lτ=${snapshot.leftTorque.toFixed(1)} Rτ=${snapshot.rightTorque.toFixed(1)} | θ=${snapshot.targetAngle.toFixed(2)}°`
+        );
+    });
+
+    // ---- RESET ----
+    resetBtn?.addEventListener("click", () => {
+        state.weights = [];
+        state.angle = 0;
+        try { localStorage.removeItem(STORAGE_KEY); } catch { }
+
+        clearPlankChildren();
+        if (leftWeightEl) leftWeightEl.textContent = "0.0 kg";
+        if (rightWeightEl) rightWeightEl.textContent = "0.0 kg";
+        if (angleEl) angleEl.textContent = "0.0°";
+
+        nextKg = randInt(1, 10);
+        if (nextWeightEl) nextWeightEl.textContent = `${nextKg} kg`;
+
+        // logları da temizle
+        logs = [];
+        saveLogs(logs);
+        renderLogs(logs);
+
+        plankEl.style.transform = "translateX(-50%) rotate(0deg)";
+        console.log("[reset] state cleared");
+    });
+
+    // ---- physics + aggregates ----
+    function recomputeAll(s) {
+        const { leftTorque, rightTorque } = computeTorques(s.weights);
+        const { leftWeight, rightWeight } = computeSideWeights(s.weights);
+        const targetAngle = angleFromTorques(leftTorque, rightTorque);
+        return { leftTorque, rightTorque, leftWeight, rightWeight, targetAngle };
     }
-  };
 
-  function recomputePhysics(s) {
-    const { leftTorque, rightTorque } = computeTorques(s.weights);
-    const targetAngle = angleFromTorques(leftTorque, rightTorque);
-    return { leftTorque, rightTorque, targetAngle };
-  }
-
-  function computeTorques(weights) {
-    let leftTorque = 0;
-    let rightTorque = 0;
-
-    for (const w of weights) {
-      const dist = Math.abs(w.dx); 
-      const t = (w.kg || 0) * dist;
-      if (w.dx < 0) leftTorque += t;
-      else rightTorque += t;
+    // Tork = Σ(weight × |distance|)
+    function computeTorques(weights) {
+        let leftTorque = 0, rightTorque = 0;
+        for (const w of weights) {
+            const dist = Math.abs(w.dx);
+            const t = (w.kg || 0) * dist;
+            if (w.dx < 0) leftTorque += t;
+            else rightTorque += t;
+        }
+        return { leftTorque, rightTorque };
     }
-    return { leftTorque, rightTorque };
-  }
 
-  function angleFromTorques(leftT, rightT) {
-    const raw = (rightT - leftT) / CONFIG.TORQUE_TO_ANGLE_SCALE;
-    return clamp(raw, -CONFIG.MAX_ANGLE, CONFIG.MAX_ANGLE);
-  }
-
-  const KEY = "seesaw_state_v1";
-
-  function saveState(s) {
-    try {
-      localStorage.setItem(KEY, JSON.stringify(s));
-    } catch (e) {
-      console.warn("[seesaw] saveState failed:", e);
+    function computeSideWeights(weights) {
+        let leftWeight = 0, rightWeight = 0;
+        for (const w of weights) {
+            if (w.dx < 0) leftWeight += (w.kg || 0);
+            else rightWeight += (w.kg || 0);
+        }
+        return { leftWeight, rightWeight };
     }
-  }
 
-  function loadState() {
-    try {
-      const raw = localStorage.getItem(KEY);
-      if (!raw) return null;
-      const data = JSON.parse(raw);
-      if (!data || !Array.isArray(data.weights)) return null;
-      if (typeof data.angle !== "number") data.angle = 0;
-      return data;
-    } catch {
-      return null;
+    // Açı = clamp((rightTorque - leftTorque) / 10, -30, 30)
+    function angleFromTorques(leftT, rightT) {
+        const raw = (rightT - leftT) / 10;                  // örnekteki formül
+        return Math.max(-30, Math.min(30, raw));            // ±30° sınırı
     }
-  }
 
-  function clamp(v, a, b) {
-    return Math.max(a, Math.min(b, v));
-  }
+    // ---- render ----
+    function renderWeight(w) {
+        const half = CONFIG.PLANK_LENGTH / 2;
+        const el = document.createElement("div");
+        el.className = "weight";
+        el.style.left = `${half + w.dx}px`;
+        el.textContent = w.kg;
+        el.title = `${w.kg} kg`;
+        plankEl.appendChild(el);
+    }
+    function clearPlankChildren() { plankEl.innerHTML = ""; }
 
-  function logSnapshot(res, tag = "") {
-    console.log(
-      `${tag} leftT=${res.leftTorque.toFixed(1)} rightT=${res.rightTorque.toFixed(1)} targetAngle=${res.targetAngle.toFixed(2)}°`
-    );
-  }
+    // ---- HUD ----
+    function updateHUD(snap) {
+        if (leftWeightEl) leftWeightEl.textContent = `${snap.leftWeight.toFixed(1)} kg`;
+        if (rightWeightEl) rightWeightEl.textContent = `${snap.rightWeight.toFixed(1)} kg`;
+        if (angleEl) angleEl.textContent = `${snap.targetAngle.toFixed(1)}°`;
+    }
 
-  logSnapshot({ leftTorque, rightTorque, targetAngle }, "[init]");
+    // ---- activity log helpers ----
+    function addLogEntry(kg, dx) {
+        const side = dx >= 0 ? "right" : "left";
+        const dist = Math.abs(Math.round(dx));
+        const text = `${kg}kg dropped on ${side} side at ${dist}px from center`;
+        const entry = { t: Date.now(), text };
+        logs.push(entry);
+        saveLogs(logs);
+        appendLogItem(entry);
+        autoScrollLogs();
+    }
+
+    function renderLogs(items) {
+        if (!logListEl) return;
+        logListEl.innerHTML = "";
+        items.forEach(appendLogItem);
+        autoScrollLogs();
+    }
+
+    function appendLogItem(entry) {
+        if (!logListEl) return;
+        const row = document.createElement("div");
+        row.className = "log-item";
+
+        const emoji = document.createElement("span");
+        emoji.className = "log-emoji";
+        emoji.textContent = "📦";
+
+        const text = document.createElement("span");
+        text.className = "log-text";
+        text.textContent = entry.text;
+
+        row.appendChild(emoji);
+        row.appendChild(text);
+        logListEl.appendChild(row);
+    }
+
+    function autoScrollLogs() {
+        if (!logListEl) return;
+        logListEl.scrollTop = logListEl.scrollHeight;
+    }
+
+    // ---- storage ----
+    function saveState(s) {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
+        catch (e) { console.warn("[seesaw] saveState failed:", e); }
+    }
+    function loadState() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return null;
+            const data = JSON.parse(raw);
+            if (!data || !Array.isArray(data.weights)) return null;
+            if (typeof data.angle !== "number") data.angle = 0;
+            return data;
+        } catch { return null; }
+    }
+
+    function loadLogs() {
+        try { const raw = localStorage.getItem(LOG_KEY); return raw ? JSON.parse(raw) : []; }
+        catch { return []; }
+    }
+    function saveLogs(arr) {
+        try { localStorage.setItem(LOG_KEY, JSON.stringify(arr.slice(-200))); } catch { }
+    }
+
+    // ---- utils ----
+    function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+    function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 })();
