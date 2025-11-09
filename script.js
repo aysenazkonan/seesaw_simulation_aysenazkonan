@@ -1,8 +1,8 @@
 (function () {
     const CONFIG = {
-        PLANK_LENGTH: 480,
+        PLANK_LENGTH: 400,
         MAX_ANGLE: 30,
-        TORQUE_TO_ANGLE_SCALE: 10    // örnekteki 10
+        TORQUE_TO_ANGLE_SCALE: 10
     };
     const STORAGE_KEY = "seesaw_state_v1";
     const LOG_KEY = "seesaw_logs_v1";
@@ -47,12 +47,16 @@
         const kg = nextKg;
         const w = { id: crypto.randomUUID(), dx, kg };
         state.weights.push(w);
-        renderWeight(w);
+        renderWeight(w, { animate: true });
+
 
         snapshot = recomputeAll(state);
         state.angle = snapshot.targetAngle;
         saveState(state);
-        updateHUD(snapshot);
+        setTimeout(() => {
+            playHitSound();
+            updateHUD(snapshot);
+        }, 400);
 
         addLogEntry(kg, dx);
 
@@ -118,22 +122,22 @@
         return Math.max(-30, Math.min(30, raw));
     }
 
-    function renderWeight(w) {
+    function renderWeight(w, opts = { animate: false }) {
         const half = CONFIG.PLANK_LENGTH / 2;
-
-        const size = 30 + (w.kg * 4); 
+        const size = 30 + (w.kg * 4);
 
         const el = document.createElement("div");
-        el.className = "weight " + (w.dx < 0 ? "left" : "right"); 
+        el.className = "weight " + (w.dx < 0 ? "left" : "right");
+        if (opts.animate) el.classList.add("falling");
+
         el.style.left = `${half + w.dx}px`;
         el.style.width = el.style.height = `${size}px`;
         el.textContent = `${w.kg}kg`;
         el.title = `${w.kg} kg`;
 
-        el.style.textShadow = "0 1px 2px rgba(0,0,0,.35)";
-
         plankEl.appendChild(el);
     }
+
 
     function clearPlankChildren() { plankEl.innerHTML = ""; }
 
@@ -213,4 +217,26 @@
 
     function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
     function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+    //animasyon ve ses eklenecek en son buraya
+    function playHitSound() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+
+            osc.frequency.value = 80 + Math.random() * 40;
+            gain.gain.setValueAtTime(0.2, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.25);
+        } catch (e) {
+            console.warn("audio not supported", e);
+        }
+    }
+
 })();
