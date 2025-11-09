@@ -137,7 +137,6 @@ body{
 }
 
 
-/* Activity Log */
 .event-log{
   max-width: 960px;
   margin: 16px auto 0;
@@ -150,9 +149,9 @@ body{
   letter-spacing: .02em;
 }
 .log-list{
-  max-height: 220px;           /* ekranına göre ayarlayabilirsin */
+  max-height: 220px;           
   overflow-y: auto;
-  padding-right: 6px;          /* scrollbar için biraz boşluk */
+  padding-right: 6px;          
 }
 
 .log-item{
@@ -160,7 +159,7 @@ body{
   display: flex;
   align-items: center;
   gap: 10px;
-  background: #f9fafb;         /* açık kart rengi */
+  background: #f9fafb;         
   color: #0f1115;
   border-radius: 10px;
   box-shadow: 0 1px 3px rgba(0,0,0,.08);
@@ -168,7 +167,6 @@ body{
   margin-bottom: 10px;
 }
 
-/* sol mavi çizgi */
 .log-item::before{
   content: "";
   position: absolute;
@@ -180,14 +178,12 @@ body{
   background: #3b82f6;
 }
 
-/* ikon */
 .log-emoji{
   font-size: 16px;
   line-height: 1;
   margin-left: 4px;
 }
 
-/* metin */
 .log-text{
   font-size: 14px;
   color: #1f2937;

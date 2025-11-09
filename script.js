@@ -1,37 +1,30 @@
 (function () {
-    // ---- config (will sync with CSS at runtime) ----
     const CONFIG = {
-        PLANK_LENGTH: 480,           // px (CSS --plank-length varsa onunla senkronlanır)
-        MAX_ANGLE: 30,               // degrees
-        TORQUE_TO_ANGLE_SCALE: 10    // örnekteki /10
+        PLANK_LENGTH: 480,
+        MAX_ANGLE: 30,
+        TORQUE_TO_ANGLE_SCALE: 10    // örnekteki 10
     };
     const STORAGE_KEY = "seesaw_state_v1";
     const LOG_KEY = "seesaw_logs_v1";
 
-    // ---- elements ----
     const plankEl = document.getElementById("plank");
-    const leftWeightEl = document.getElementById("leftTorque");    // toplam kg (sol)
-    const rightWeightEl = document.getElementById("rightTorque");   // toplam kg (sağ)
-    const nextWeightEl = document.getElementById("nextWeight");    // sıradaki kg
-    const angleEl = document.getElementById("angleReadout");  // açı
+    const leftWeightEl = document.getElementById("leftTorque");
+    const rightWeightEl = document.getElementById("rightTorque");
+    const nextWeightEl = document.getElementById("nextWeight");
+    const angleEl = document.getElementById("angleReadout");
     const resetBtn = document.getElementById("resetBtn");
-    const logListEl = document.getElementById("logList");       // activity log container
+    const logListEl = document.getElementById("logList");
 
     if (!plankEl) { console.warn("[seesaw] plank element not found."); return; }
 
-    // CSS değişkeninden uzunluğu oku (varsa)
     const cssLen = parseFloat(getComputedStyle(plankEl).getPropertyValue("--plank-length"));
     if (!Number.isNaN(cssLen) && cssLen > 0) CONFIG.PLANK_LENGTH = cssLen;
 
-    // ---- state ----
-    // weights = [{ id, kg (1..10), dx(px from center; left negative, right positive) }]
     const state = loadState() || { weights: [], angle: 0 };
 
-    // HUD'da gösterilecek bir sonraki ağırlık
     let nextKg = randInt(1, 10);
     if (nextWeightEl) nextWeightEl.textContent = `${nextKg} kg`;
 
-    // ---- initial render ----
     clearPlankChildren();
     for (const w of state.weights) renderWeight(w);
 
@@ -40,21 +33,18 @@
     saveState(state);
     updateHUD(snapshot);
 
-    // Logları yükle & çiz
     let logs = loadLogs();
     renderLogs(logs);
 
-    // ---- interaction: click → mevcut nextKg'yi bırak ----
     plankEl.addEventListener("click", (e) => {
         const rect = plankEl.getBoundingClientRect();
-        const x = e.clientX - rect.left;                // 0..rect.width
+        const x = e.clientX - rect.left;
         const clampedX = clamp(x, 0, rect.width);
 
-        // DOM px → mantıksal (CONFIG.PLANK_LENGTH) ölçeği
         const scale = CONFIG.PLANK_LENGTH / rect.width;
-        const dx = (clampedX - rect.width / 2) * scale; // sol negatif, sağ pozitif
+        const dx = (clampedX - rect.width / 2) * scale;
 
-        const kg = nextKg;                              // HUD'da görülen ağırlık
+        const kg = nextKg;
         const w = { id: crypto.randomUUID(), dx, kg };
         state.weights.push(w);
         renderWeight(w);
@@ -64,10 +54,8 @@
         saveState(state);
         updateHUD(snapshot);
 
-        // log ekle
         addLogEntry(kg, dx);
 
-        // yeni "next"
         nextKg = randInt(1, 10);
         if (nextWeightEl) nextWeightEl.textContent = `${nextKg} kg`;
 
@@ -76,7 +64,6 @@
         );
     });
 
-    // ---- RESET ----
     resetBtn?.addEventListener("click", () => {
         state.weights = [];
         state.angle = 0;
@@ -90,7 +77,6 @@
         nextKg = randInt(1, 10);
         if (nextWeightEl) nextWeightEl.textContent = `${nextKg} kg`;
 
-        // logları da temizle
         logs = [];
         saveLogs(logs);
         renderLogs(logs);
@@ -99,7 +85,6 @@
         console.log("[reset] state cleared");
     });
 
-    // ---- physics + aggregates ----
     function recomputeAll(s) {
         const { leftTorque, rightTorque } = computeTorques(s.weights);
         const { leftWeight, rightWeight } = computeSideWeights(s.weights);
@@ -107,7 +92,6 @@
         return { leftTorque, rightTorque, leftWeight, rightWeight, targetAngle };
     }
 
-    // Tork = Σ(weight × |distance|)
     function computeTorques(weights) {
         let leftTorque = 0, rightTorque = 0;
         for (const w of weights) {
@@ -128,13 +112,12 @@
         return { leftWeight, rightWeight };
     }
 
-    // Açı = clamp((rightTorque - leftTorque) / 10, -30, 30)
+
     function angleFromTorques(leftT, rightT) {
-        const raw = (rightT - leftT) / 10;                  // örnekteki formül
-        return Math.max(-30, Math.min(30, raw));            // ±30° sınırı
+        const raw = (rightT - leftT) / 10;                  //örnekteki formül belki ileride geliştiririm 
+        return Math.max(-30, Math.min(30, raw));
     }
 
-    // ---- render ----
     function renderWeight(w) {
         const half = CONFIG.PLANK_LENGTH / 2;
         const el = document.createElement("div");
@@ -146,14 +129,16 @@
     }
     function clearPlankChildren() { plankEl.innerHTML = ""; }
 
-    // ---- HUD ----
     function updateHUD(snap) {
         if (leftWeightEl) leftWeightEl.textContent = `${snap.leftWeight.toFixed(1)} kg`;
         if (rightWeightEl) rightWeightEl.textContent = `${snap.rightWeight.toFixed(1)} kg`;
         if (angleEl) angleEl.textContent = `${snap.targetAngle.toFixed(1)}°`;
+
+        // görsel eğimi uygula (animasyon yok; Commit 5'te easing ekleriz)
+        plankEl.style.transform = `translateX(-50%) rotate(${snap.targetAngle}deg)`;
     }
 
-    // ---- activity log helpers ----
+
     function addLogEntry(kg, dx) {
         const side = dx >= 0 ? "right" : "left";
         const dist = Math.abs(Math.round(dx));
@@ -195,7 +180,7 @@
         logListEl.scrollTop = logListEl.scrollHeight;
     }
 
-    // ---- storage ----
+
     function saveState(s) {
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
         catch (e) { console.warn("[seesaw] saveState failed:", e); }
@@ -219,7 +204,6 @@
         try { localStorage.setItem(LOG_KEY, JSON.stringify(arr.slice(-200))); } catch { }
     }
 
-    // ---- utils ----
     function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
     function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 })();
