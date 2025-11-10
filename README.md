@@ -48,5 +48,6 @@ Maximum angle and torque scaling can be configured in the CONFIG object.
 
 # AI Assistance
 
-AI was used only for formatting the README and minor wording suggestions.
+AI was used only for formatting the README and minor wording suggestions. 
+Comment lines were also added with ai.
 All core logic, implementation decisions, and code were written manually.
