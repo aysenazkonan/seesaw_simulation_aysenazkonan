@@ -1,14 +1,18 @@
+/* Apply border-box sizing everywhere to avoid layout surprises */
 * { box-sizing: border-box; }
 
+/* Make the full viewport available for layout */
 html, body { height: 100%; }
 
+/* Design tokens (dark theme palette) */
 :root{
-  --bg: #0f1115;
-  --panel: #151923;
-  --text: #e8ecf1;
-  --muted: #9aa3b2;
+  --bg: #0f1115;     /* page background */
+  --panel: #151923;  /* card/panel background */
+  --text: #e8ecf1;   /* primary text color */
+  --muted: #9aa3b2;  /* secondary/muted text */
 }
 
+/* Global text & background setup */
 body{
   margin: 0;
   background: var(--bg);
@@ -16,12 +20,14 @@ body{
   font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
 }
 
+/* App container - centers content and constrains width */
 .app{
   max-width: 960px;
   margin: 0 auto;
   padding: 24px;
 }
 
+/* Title styling */
 .title{
   text-align: center;
   font-weight: 800;
@@ -29,6 +35,7 @@ body{
   letter-spacing: .2px;
 }
 
+/* Generic muted panel (not used in final UI, left as helper) */
 .placeholder{
   background: var(--panel);
   color: var(--muted);
@@ -38,40 +45,40 @@ body{
   text-align: center;
 }
 
-
+/* ---- Stage: the playground area that contains the seesaw ---- */
 .stage{
   position: relative;
-  height: 440px;              
-  margin: 0 auto 16px;        
+  height: 440px;               /* gives enough room for animation above/below plank */
+  margin: 0 auto 16px;         /* centered, with spacing below */
   background: linear-gradient(180deg, #0f1115 0%, #0d0f14 60%, #0c0e12 100%);
   border: 1px solid #1c2230;
   border-radius: 16px;
-  overflow: visible;         
+  overflow: visible;           /* allow weights to animate outside the inner box */
   display: grid;
-  place-items: center;
+  place-items: center;         /* centering pivot/plank by default */
 }
 
-
-
+/* Pivot triangle under the plank (pure CSS triangle) */
 #pivot{
   position: absolute;
   top: calc(50% + 6px);
   left: 50%;
-  transform: translateX(-50%);  
+  transform: translateX(-50%);
   width: 0;
   height: 0;
 
+  /* Triangle trick via borders */
   border-left: 18px solid transparent;
   border-right: 18px solid transparent;
-  border-bottom: 34px solid #93abee;  
+  border-bottom: 34px solid #93abee;
 
   filter: drop-shadow(0 4px 6px rgba(0,0,0,.3));
-  z-index: 1; 
+  z-index: 1; /* behind the plank but above the background */
 }
 
-
+/* The seesaw plank */
 #plank{
-  --plank-length: 400px;
+  --plank-length: 400px; /* also read by JS to align physics with visuals */
   position: absolute;
   top: 50%;
   left: 50%;
@@ -82,22 +89,22 @@ body{
   border-radius: 8px;
   box-shadow: 0 10px 30px rgba(59,130,246,.25), inset 0 -2px 0 rgba(0,0,0,.25);
   transform-origin: 50% 50%;
-  overflow: visible;
+  overflow: visible; /* let weights overflow the plank bounds */
   z-index: 2;
 
+  /* Smooth tilt animation when angle updates */
   transition: transform 1.2s cubic-bezier(.17,.67,.3,1.25);
-  will-change: transform; 
+  will-change: transform;
 }
 
-
-
+/* ---- Heads-up display cards (totals, next weight, angle) ---- */
 .hud-cards {
   display: flex;
   gap: 24px;
   justify-content: center;
   align-items: stretch;
   margin-bottom: 24px;
-  flex-wrap: wrap;
+  flex-wrap: wrap; /* wrap on small screens */
 }
 
 .hud-card {
@@ -115,7 +122,7 @@ body{
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.05em;
-  color: #6b7280; 
+  color: #6b7280;  /* slightly muted label text */
   margin-bottom: 4px;
 }
 
@@ -126,7 +133,7 @@ body{
   color: #1f2937;
 }
 
-
+/* ---- Controls (Reset button) ---- */
 .controls{
   display:flex;
   justify-content:center;
@@ -147,7 +154,7 @@ body{
   color:#3b82f6;
 }
 
-
+/* ---- Activity log ---- */
 .event-log{
   max-width: 960px;
   margin: 16px auto 0;
@@ -160,9 +167,9 @@ body{
   letter-spacing: .02em;
 }
 .log-list{
-  max-height: 220px;           
+  max-height: 220px;            /* scrollable list without growing too tall */
   overflow-y: auto;
-  padding-right: 6px;          
+  padding-right: 6px;           /* room for scrollbar */
 }
 
 .log-item{
@@ -170,7 +177,7 @@ body{
   display: flex;
   align-items: center;
   gap: 10px;
-  background: #f9fafb;         
+  background: #f9fafb;          /* light card to contrast dark background */
   color: #0f1115;
   border-radius: 10px;
   box-shadow: 0 1px 3px rgba(0,0,0,.08);
@@ -189,12 +196,14 @@ body{
   color: #1f2937;
 }
 
+/* Ensure the plank can show children outside its height */
 #plank { overflow: visible; }
 
+/* ---- Dropped weight visuals ---- */
 .weight{
   position: absolute;
-  top: 50%;                      
-  transform: translate(-50%, -50%); 
+  top: 50%;                       /* vertically align to plank center */
+  transform: translate(-50%, -50%); /* center by its own size */
   border-radius: 50%;
   background: radial-gradient(ellipse at 35% 35%, rgba(255,255,255,.18), rgba(0,0,0,.18)),
               #3b82f6;
@@ -204,31 +213,33 @@ body{
   place-items: center;
   box-shadow: 0 10px 20px rgba(0,0,0,.25);
   user-select: none;
-  pointer-events: none;           
-  animation: dropIn .28s ease-out;
+  pointer-events: none;            /* ignore mouse so the plank receives clicks */
+  animation: dropIn .28s ease-out; /* small pop on first render */
 }
 
-.weight.left  { background-color: #92e5a4; } 
-.weight.right { background-color: #f59e0b; }
-.weight.blue  { background-color: #3b82f6; } 
+/* Side-based color hint (optional accent) */
+.weight.left  { background-color: #92e5a4; } /* greenish for left side */
+.weight.right { background-color: #f59e0b; } /* amber for right side */
+.weight.blue  { background-color: #3b82f6; } /* default blue */
 
+/* Initial appear animation */
 @keyframes dropIn{
   from { transform: translate(-50%, -90%) scale(.9); opacity: 0; }
   to   { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
 }
 
+/* Taller arc animation when weight is dropped via click */
 .weight.falling {
   animation: drop-fall 1.7s cubic-bezier(.15,.8,.3,1.1);
 }
 
-
 @keyframes drop-fall {
   0% {
-    transform: translate(-50%, -450%) scale(0.9); /* -220% → -380% */
+    transform: translate(-50%, -450%) scale(0.9); /* start high above the plank */
     opacity: 0;
   }
   75% {
-    transform: translate(-50%, -48%) scale(1.03);
+    transform: translate(-50%, -48%) scale(1.03); /* small overshoot for bounce feel */
     opacity: 1;
   }
   100% {
@@ -236,9 +247,3 @@ body{
     opacity: 1;
   }
 }
-
-
-
-
-
-
